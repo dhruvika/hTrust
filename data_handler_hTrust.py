@@ -36,6 +36,9 @@ class data_handler():
 
         time_data_dict = {}
 
+        print "TIME DATA"
+        print len(time_data)
+
         #dictionary from user pairs to time of established relation
         #if user pair appears twice, use first timestamp
         for x in time_data:
@@ -77,15 +80,15 @@ class data_handler():
 
         #SET TEST VALUE HERE (amount of dataset to test on)
 
-        test_value = self.n * 1.
+        test_value = self.n * 0.01
         print "No of users considered"
         print test_value
 
         # deleting self loops
         time_data_final = dict(time_data)
-        for pair in time_data:
-            if pair[0] == pair[1]:
-                del time_data_final[pair]
+        # for pair in time_data:
+        #     if pair[0] == pair[1]:
+        #         del time_data_final[pair]
             
 
         # removing first x% of old users (using 50% currently)
@@ -129,7 +132,7 @@ class data_handler():
         # print len(P)
 
 
-        return [P, G_needed, 5, time_data_final]
+        return [P, G_needed, self.d, time_data_final]
 
 # data = data_handler("rating_with_timestamp.mat", "trust.mat", "epinion_trust_with_timestamp.mat")
 # data.load_matrices()
