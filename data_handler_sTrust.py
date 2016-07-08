@@ -16,11 +16,6 @@ class data_handler():
         self.k = 0
         self.d = 0
 
-    # def get_stats(self):
-    #     return self.n_users, self.n_prod, self.n_cat
-
-
-        #BRING G BACK BEFORE RUNNING MAIN--------------------
 
     def load_matrices(self):
         #Loading matrices from data
@@ -32,10 +27,11 @@ class data_handler():
         time_data = loadmat(f3)
         time_data = time_data['trust']
         print len(time_data)
-        # d = {n: True for n in range(5)}
-        # time_data = {(x[0],x[1]):x[2] for x in time_data}
+        
         time_data_dict = {}
         
+        #dictionary from user pairs to time of established relation
+        #if user pair appears twice, use first timestamp
         for x in time_data:
             pair = (x[0],x[1])
             if pair not in time_data_dict:
@@ -44,11 +40,10 @@ class data_handler():
                 if time_data_dict[pair] > x[2]:
                     time_data_dict[pair] = x[2]
         time_data = time_data_dict
+        time_data = OrderedDict(sorted(time_data.items(), key=lambda kv: kv[1], reverse=False))
         
 
-        # print "TIME DATA"
-        # print time_data
-        #G_raw = np.array([])
+    
         P_initial = P_initial['rating_with_timestamp']
         G_raw = G_raw['trust']
         print "SHAPE"
@@ -58,9 +53,11 @@ class data_handler():
         self.n = max(P_initial[:,0]) 
         print "N: " + str(self.n)
         self.k = max(P_initial[:,1])  
-        self.d = max(P_initial[:,2]) 
-        P = np.zeros((self.n,self.k))
+        self.d = max(P_initial[:,2])
 
+        P = np.zeros((self.n,self.k),dtype = np.float32)
+
+        # constructing user-rating matrix P from data 
 
         for row in P_initial:
             i = row[0] -1
@@ -69,30 +66,33 @@ class data_handler():
 
         P_size = P.shape[0]
 
-        time_data_final = dict(time_data)
-        for pair in time_data:
-            if pair[0] == pair[1]:
-                del time_data_final[pair]
-       
-        print "CALCULATING O"
-        # total_relations = len(time_data_final.keys())
-        # amount_TP = int(total_relations* 0.5)
-        # O = time_data_final.keys()[:amount_TP]
-
-        G_needed = np.zeros((self.n,self.n))
-
-        for row in time_data_final:
-            G_needed[row[0]-1,row[1]-1] = 1
-
-
+        #SET TEST VALUE HERE (amount of dataset to test on)
 
         test_value = self.n * 1.
         print test_value
+
+        # deleting self loops
+        time_data_final = dict(time_data)
+        # for pair in time_data:
+        #     if pair[0] == pair[1]:
+        #         del time_data_final[pair]
+       
+        # removing first x% of old users (using 50% currently)
+        print "CALCULATING O"
+        # total_relations = len(time_data_final.keys())
+        # amount_TP = int(total_relations* 0.5)
+        # newer_users = time_data_final.keys()[:amount_TP]
+
+        #constructing initial trust matrix G 
+        G_needed = np.zeros((self.n,self.n),dtype = np.float32)
+        for row in time_data_final:
+            G_needed[row[0]-1,row[1]-1] = 1
+
+        #cutting trust matrix down to test_value size (for smaller dataset)
         G_needed = G_needed[:test_value]
         G_needed = np.array([x[:test_value] for x in G_needed])
 
-        #dictionary from user pairs to time of established relation
-        # time_data_final = dict(time_data)
+        #cutting dictionary from user pairs to time of established relation down to test_value size
         for pair in time_data:
             # if pair[0] == pair[1]:
             #     del time_data_final[pair]
@@ -101,31 +101,12 @@ class data_handler():
                     del time_data_final[pair]
 
         
-        #sort based on time value
+        #rearranging in chronological order
         time_data_final = OrderedDict(sorted(time_data_final.items(), key=lambda kv: kv[1], reverse=False))
-
-    
         time_data_final = np.array(time_data_final.keys())
 
 
-
-        #remove for actual run--------------
-
-        # for (x,y) in np.ndenumerate(G_needed):
-        #     [i,j] = [x[0],x[1]]
-        #     if G_needed[i,j] == 1:
-        #         G_raw.append([i+1,j+1])
-        # G_raw = np.array(G_raw)
-        
-
-        #-----------------------------
-
         P = P[:test_value]
-        # print "THIS IS TRUST MATRIX"
-        # print G_needed
-        # print len(G_needed)
-        # print len(P)
-
 
         return [P, G_needed, self.d, time_data_final]
 
@@ -133,7 +114,6 @@ class data_handler():
 # data.load_matrices()
 
 
-#TODO - get P matrix from data (iXk matrix)
 
 
 

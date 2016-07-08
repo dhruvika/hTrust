@@ -80,7 +80,7 @@ class data_handler():
 
         #SET TEST VALUE HERE (amount of dataset to test on)
 
-        test_value = self.n * 0.01
+        test_value = self.n * 1.
         print "No of users considered"
         print test_value
 
@@ -112,7 +112,7 @@ class data_handler():
         #cutting dictionary from user pairs to time of established relation down to test_value size
         for pair in time_data:
             if pair in time_data_final:
-                if pair[0] > test_value or pair[1] > test_value:
+                if pair[0] >= test_value or pair[1] >= test_value:
                     del time_data_final[pair]
 
         
@@ -125,12 +125,6 @@ class data_handler():
 
         # cutting down P to test_value number of users
         P = P[:test_value]
-
-        # print "THIS IS TRUST MATRIX"
-        # print G_needed
-        # print len(G_needed)
-        # print len(P)
-
 
         return [P, G_needed, self.d, time_data_final]
 

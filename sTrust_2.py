@@ -8,7 +8,7 @@ from collections import OrderedDict
 class Social_Status:
     def __init__(self,G,P,d,max_itr, G_original):
 
-        self.G_original = np.array(G_original)
+        self.G_original = np.array(G_original,dtype = np.float32)
         self.G = G
         self.n = len(self.G)
         self.max_itr = max_itr
@@ -17,18 +17,20 @@ class Social_Status:
         # self.lambda1 = 0.1
         self.lambda2 = 0.7
         self.P = P #user-rating matrix (ixk)
-        self.R = np.zeros((self.n,self.n)) 
-        self._oldU = np.zeros((self.n, self.d))
-        self.U= np.random.random((self.n, self.d))
-        self._oldH = np.zeros((self.d, self.d))
-        self.H = np.random.random((self.d, self.d))
-        self.G_final = np.zeros((self.n,self.n))
-        self.Q = np.zeros((self.n,self.n))
+        self.R = np.zeros((self.n,self.n),dtype = np.float32) 
+        self._oldU = np.zeros((self.n, self.d),dtype = np.float32)
+        self.U= np.zeros((self.n, self.d),dtype = np.float32)
+        self._oldH = np.zeros((self.d, self.d),dtype = np.float32)
+        self.H = np.zeros((self.d, self.d),dtype = np.float32)
+        self.G_final = np.zeros((self.n,self.n),dtype = np.float32)
+        self.Q = np.zeros((self.n,self.n),dtype = np.float32)
         self.TP = 0
 
       
         
     def pagerank(self,graph, damping=0.85, epsilon=1.0e-8):
+        #ranks users in graph based on pagerank formulation
+
         inlink_map = {}
         outlink_counts = {}
     
@@ -68,7 +70,8 @@ class Social_Status:
     
         return ranks, n_iterations
          
-    def determine_user_ranking(self): #on basis of number of trustors
+    def determine_user_ranking(self): 
+        #creates user graph and uses pagerank to rank users
         user_directed_graph = {}
         for pair in self.G_original:
             [user1,user2] = pair
@@ -81,22 +84,22 @@ class Social_Status:
         graph = self.G_original.tolist()
         damping = 0.85
         epsilon = 1.0e-8
-        # print graph
         rank_dict = self.pagerank(graph,damping,epsilon)[0]
 
         rank = [0] * (self.n + 1)
+
+        #rank has format: rank[user] = ranking
         for user in rank_dict:
             rank[user] = rank_dict[user] 
 
         rank = rank[1:]
+
         return np.asarray(rank)
 
 
     def calcR(self):
         ranking = self.determine_user_ranking()
         ranking = ranking.reshape(self.n,1)
-        print "RANKING THING"
-        print ranking
 
         # using np operations to contruct boolean matrix
 
@@ -109,16 +112,14 @@ class Social_Status:
         test_2 = test_2 > 0 
         
         test = test_1 & test_2
-        # final = (1/(1+np.log(ranking +1))) - (1/(1+np.log(ranking.T + 1)))
+        
         final = (1/(1+(np.log(ranking-ranking.T +1))))
 
-
+        #setting where condition is False to 0, all others have final values
         final[np.where(test==False)] = 0
-        final = final
-        print "FINAL"
-        print final
 
         final = np.sqrt(final)
+
         print "FOUND R!"
 
     def converge(self, iterNO):
@@ -158,8 +159,7 @@ class Social_Status:
         A_6 = np.dot(np.dot(self.lambda2 * self.R.transpose() * self.R.transpose() * term_1,self.U),self.H.transpose())
         
         A = A_1 + A_2 + A_3 + A_4 + A_5 + A_6 
-        # print "HERE IS A"
-        # print A
+    
 
         B_1 = np.dot(np.dot(term_2,self.U),self.H)
         B_2 = np.dot(np.dot(term_1,self.U),self.H.transpose())
@@ -168,89 +168,55 @@ class Social_Status:
         B_5 = np.dot(np.dot(2 * self.lambda2 * self.R * self.R * term_2, self.U),self.H.transpose())
         
         B = B_1 + B_2 + B_3 + B_4 + B_5 
-        # print "HERE IS B"
-        # print B
+        
 
         C_1 = np.dot(np.dot(self.U.transpose(),self.G),self.U)
         C_2 = np.dot(np.dot(self.lambda2 * self.U.transpose(), (self.R * self.R * term_1)), self.U)
         C_3 = np.dot(np.dot(self.lambda2 * self.U.transpose(), (self.R.transpose() * self.R.transpose() * term_1)), self.U)
         C = C_1 + C_2 + C_3
-        # print "HERE IS C"
-        # print C
+       
 
         D_1 = np.dot(np.dot(self.U.transpose(),term_1),self.U)
         D_2 = self.alpha * self.H
         D_3 = np.dot(np.dot(2 * self.lambda2 * self.U.transpose(), (self.R * self.R * term_2)),self.U)
        
         D = D_1 + D_2 + D_3 
-        # print "HERE IS D"
-        # print D
+        
 
-        # print "STARTING U,H UPDATES"
-
-        # test_B = B != 0
-        # self.U = self.U * np.sqrt(A / B)
-        # self.U[np.where(test_B==False)] = 0
-
-        # test_D = D != 0
-        # self.H = self.H * np.sqrt(C / D)
-        # self.H[np.where(test_D==False)] = 0
-
+        
+        #updating self.U and self.H
 
         test_B = B != 0
         self.U = self.U * np.sqrt(A / B)
         indices_1 = zip(*np.where(test_B==False))
-        # print "ORIGINAL LIST"
-        # print np.where(test_B==False)
+        
+        # whenever divide by zero occurs, use old matrix value
         for x,y in indices_1:
             self.U[x,y] = self._oldU[x,y]
-
-        # self.U[np.where(test_B==False)] = self._oldU[np.where(test_B==False)]
 
 
         test_D = D != 0
         self.H = self.H * np.sqrt(C / D)
         indices_2 = zip(*np.where(test_D==False))
+
+        # whenever divide by zero occurs, use old matrix value
         for x,y in indices_2:
             self.H[x,y] = self._oldH[x,y]
 
-        # print self._oldH[np.where(test_B==False)]
-
-        # self.H[np.where(test_D==False)] = self._oldH[np.where(test_B==False)]
-
 
     def start_main(self):
-        max_itr = 1000
-        # self.calcZ()
-        # self.calcW()
+        max_itr = 400
+        
         self.calcR()
-
-        # P = np.zeros(self.G.shape)
-        # L = np.zeros(self.G.shape)
-
-        # #calculating homophily contribution
-        # for i in range(0,self.n):
-        #     total = 0
-        #     for j in range(0,self.n):
-        #         total = total + self.Z[j,i]
-        #     self.Q[i,i] = total
-
-        # L = self.Q - self.Z
-        # homo_contribution = 2 * np.trace(np.dot(np.dot(self.U.transpose(),L),self.U))
-        # print "Calculated homphily contribution"
-
-        # # #calculating status contribution
-        # part_2 = np.dot(np.dot(self.U,self.H.transpose()),self.U.transpose())
-        # part_3 = np.dot(np.dot(self.U,self.H),self.U.transpose())
-        # status_contribution = np.linalg.norm(self.R * (part_2 - part_3),ord = 'fro')
-        # status_contribution = status_contribution ** 2
-        # print "Calculated status contribution"
 
         # self.U = np.random.random((self.n,self.d))
         # self.H = np.random.random((self.d,self.d))
 
-        U = np.ones((self.n,self.d)) * 0.1
-        V = np.ones((self.d,self.d)) * 0.1
+        self.U = np.random.uniform(0.0,0.1,(self.n,self.d))
+        self.H = np.random.uniform(0.0,0.1,(self.d, self.d))
+
+        # self.U = np.ones((self.n,self.d)) * 0.1
+        # self.H = np.ones((self.d,self.d)) * 0.1
 
         i = 1
 
@@ -258,25 +224,15 @@ class Social_Status:
         # print self.converge(i)
         while not i > max_itr:
             print ("Iteration: ", i)
-            # self.calcR()
-        #print self.U, self._oldU
-        #term1 = np.linalg.norm(self.W * (self.G - np.dot(np.dot(self.U,self.H),self.U.transpose())),ord='fro')
-        #term1 = term1**2
-        #skipped the regulating terms as in MATRI/ frobenius norms?
-        #term2 = self.lambda1 * homo_contribution
-        #term3 = self.lambda2 * status_contribution
-
-        #P = term1 + term2 + term3 #what was included in P?
-
-        # self.updateMatrices()
-            #print "AFTER UPDATE"
+           
             self.updateMatrices()
-            #print self.U, self._oldU
+
             i = i + 1
         
         print "Found U and H successfully!"
         print "THEY ARE"
         print self.U, self.H
+
         self.calcTrust()
 
             
@@ -288,7 +244,6 @@ class Social_Status:
         self.G_final = np.dot(self.G_final, self.U.transpose())
 
         print "Found predicted trust! Has TP accuracy: " + str(self.TP_accuracy())
-        #print G_final
 
         print "FINAL PREDICTED"
         print self.G_final
@@ -299,14 +254,11 @@ class Social_Status:
         return self.G_final
 
 
-    def RMSE(self):
-        return np.sqrt(np.mean((self.G_final - self.G)**2))
 
     def TP_accuracy(self):
         # set ratio of data to split
         ratio = int(len(self.G_original) *0.5)
-        # print len(self.G_original)
-        # print "RATIO" + str(ratio)
+        
         A = self.G_original.tolist()
     
         C = A[:ratio]
@@ -335,7 +287,7 @@ class Social_Status:
             array = [i+1,j+1]
             if self.G[i,j] == 0:
                 B.append(array)
-        # print "B IS THIS BIG" + str(len(B))
+        
 
         B = [tuple(b) for b in B]
         B = set(B)
@@ -346,31 +298,14 @@ class Social_Status:
         for pair in DUB:
             (x,y) = pair
             rank_dict_1[(pair[0],pair[1])] = self.G_final[x-1,y-1]
-
-        # print "BEFORE SORTING"
-        # print rank_dict_1
+       
         d_descending = OrderedDict(sorted(rank_dict_1.items(), key=lambda kv: kv[1], reverse=True))
-        # print "AFTER SORTING"
-        # print d_descending
-        # print "BREAK BREAK"
-        # print "LEN OF D IS" + str(len(D))
         rank_list = d_descending.keys()
-        # print "WHERE IS [110,53]????"
-        # print str(rank_list.index((110,53))) + " OF " + str(len(rank_list))
-        
-
-        # print "USER LIST"
-        # print rank_list
         
         E = set(rank_list[:len(D)])
-        # print "E HERE"
-        # print E
-
+    
         TP = (float)(len(D.intersection(E)))/len(D)
         self.TP = TP
-            # q = q + 0.5
-
-        # print "THIS IS IDEAL RATIO: " + str(q-1)
 
         return self.TP 
     

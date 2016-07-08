@@ -1,7 +1,8 @@
-from data_handler_hTrust import data_handler
+from trial_data import data_handler
 import numpy as np
 import math
 from collections import OrderedDict
+import os
 
 data = data_handler("rating_with_timestamp.mat", "trust.mat", "epinion_trust_with_timestamp.mat")
 data = data.load_matrices()
@@ -19,11 +20,13 @@ _lambda = 10
 def calcS(P): 
     #calculating matrix S or homophily coefficient matrix using formula in paper
 
+    # Z = np.load(fname + '.npy')
+
     n = len(P)
     numerator = np.dot(P, P.transpose())
 
-    J_norm = np.sum(np.abs(P)**2,axis=-1)**(1./2)
-    J_norm = J_norm.astype(np.float32)
+    J_norm = (np.sum(np.abs(P)**2,axis=-1)**(1./2)).astype(np.float32)
+    # J_norm = J_norm.astype(np.float32)
     J_norm = J_norm.reshape(n,1)
     I_norm = J_norm.transpose().astype(np.float32)
 
@@ -35,6 +38,10 @@ def calcS(P):
         Z = np.divide(numerator,denominator).astype(np.float32)
         # Z[Z == np.inf] = 0
         Z = np.nan_to_num(Z)
+
+    # fname = "store_Z_10"
+    # np.save(fname,Z)
+    
     return Z
 
 S = calcS(P)
