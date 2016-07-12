@@ -19,7 +19,6 @@ class data_handler():
 
     
 
-        #BRING G BACK BEFORE RUNNING MAIN--------------------
 
     def load_matrices(self):
         #Loading matrices from data
@@ -30,12 +29,13 @@ class data_handler():
         G_raw = loadmat(f2) #trust-trust matrices
         time_data = loadmat(f3)
         time_data = time_data['trust']
-        print "TIME DATA NOS"
-        # print len(time_data)
-        # d = {n: True for n in range(5)}
+
+        f1.close()
+        f2.close()
+        f3.close()
+
         time_data_dict = {}
 
-        #should use older relations for repeats?
         for x in time_data:
             pair = (x[0],x[1])
             if pair not in time_data_dict:
@@ -47,20 +47,14 @@ class data_handler():
         time_data = time_data_dict
         print len(time_data)
         time_data = OrderedDict(sorted(time_data.items(), key=lambda kv: kv[1], reverse=False))
-        # print "TIME DATA WOO"
-        # print time_data
+        
 
-        # print "TIME DATA"
-        # print time_data
-        #G_raw = np.array([])
         P_initial = P_initial['rating_with_timestamp']
         G_raw = G_raw['trust']
-        # print "SHAPE"
-        # print G_raw.shape
-        # print len(time_data)
+    
 
         self.n = max(P_initial[:,0]) 
-        print "N: " + str(self.n)
+       
         self.k = max(P_initial[:,1]) 
         
         self.d = max(P_initial[:,2]) 
@@ -75,34 +69,8 @@ class data_handler():
 
         P_size = P.shape[0]
 
-        #FILTER 1
-        # deleted_user = []
-        # for row_index in range(0,self.n):
-        #     ratings = np.count_nonzero(P[row_index])
-        #     if ratings < 2:
-        #         deleted_user.append(row_index+1)
-
-        #FILTER 2
-        # users = np.arange(len(self.G)+1)[1:]
-        
-        # # calculating number of trustors of each user
-        # trustor_number = {}
-        # for user in users:
-        #     trustors = 0
-        #     for i in range(0,len(users)):
-        #         if self.G[i][user-1] != 0:
-        #             trustors = trustors + 1
-        #     if trustors < 3:
-        #         deleted_user.append(user)
-
-        # print "DELETING THESE MANY FOOLS"
-        # print len(deleted_user)
-
-
-        # print "making time thing"
-        #dictionary from user pairs to time of established relation
         time_data_final = dict(time_data)
-        for pair in time_data: #added FILTER 1
+        for pair in time_data: 
             if pair[0] == pair[1] :
                 # if pair[0] in deleted_user or pair[1] in deleted_user:
                 del time_data_final[pair]
@@ -126,12 +94,10 @@ class data_handler():
             #     continue
             G_needed[row[0]-1,row[1]-1] = 1
 
-        #FILTERS 
-
 
         #SET TEST VALUE HEREEE
 
-        test_value = self.n * 1.
+        test_value = self.n * 0.05
         
         print test_value
         G_needed = G_needed[:test_value]
@@ -145,9 +111,6 @@ class data_handler():
                     del time_data_final[pair]
 
 
-
-        
-        #sort based on time value
         time_data_final = OrderedDict(sorted(time_data_final.items(), key=lambda kv: kv[1], reverse=False))
 
     
@@ -156,23 +119,7 @@ class data_handler():
         print len(time_data_final)
 
 
-
-        #remove for actual run--------------
-
-        # for (x,y) in np.ndenumerate(G_needed):
-        #     [i,j] = [x[0],x[1]]
-        #     if G_needed[i,j] == 1:
-        #         G_raw.append([i+1,j+1])
-        # G_raw = np.array(G_raw)
-        
-
-        #-----------------------------
-
         P = P[:test_value]
-        # print "THIS IS TRUST MATRIX"
-        # print G_needed
-        # print len(G_needed)
-        # print len(P)
 
 
         return [P, G_needed, 5, time_data_final]
@@ -181,7 +128,6 @@ class data_handler():
 # data.load_matrices()
 
 
-#TODO - get P matrix from data (iXk matrix)
 
 
 

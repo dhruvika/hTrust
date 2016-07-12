@@ -23,6 +23,7 @@ class Social_Status:
         self._oldH = np.zeros((self.d, self.d),dtype = np.float32)
         self.H = np.zeros((self.d, self.d),dtype = np.float32)
         self.G_final = np.zeros((self.n,self.n),dtype = np.float32)
+        self.G_itr = np.zeros((self.n,self.n))
         self.Q = np.zeros((self.n,self.n),dtype = np.float32)
         self.TP = 0
 
@@ -90,6 +91,7 @@ class Social_Status:
 
         #rank has format: rank[user] = ranking
         for user in rank_dict:
+            user = int(user)
             rank[user] = rank_dict[user] 
 
         rank = rank[1:]
@@ -97,28 +99,20 @@ class Social_Status:
         return np.asarray(rank)
 
 
-    def calcR(self):
-        ranking = self.determine_user_ranking()
-        ranking = ranking.reshape(self.n,1)
-
-        # using np operations to contruct boolean matrix
-
-        # checks if rank(j) > rank(i)
-        test_1 = (ranking.T - ranking) * -1
-        test_1 = test_1 > 0
+    def calcR(self, test_1, final):
+      
         
         # checks if trust(i,j) > trust(j,i)
-        test_2 = self.G - self.G.T 
+        test_2 = self.G_itr - self.G_itr.T 
         test_2 = test_2 > 0 
         
         test = test_1 & test_2
-        
-        final = (1/(1+(np.log(ranking-ranking.T +1))))
 
         #setting where condition is False to 0, all others have final values
         final[np.where(test==False)] = 0
 
         final = np.sqrt(final)
+        self.R = final
 
         print "FOUND R!"
 
@@ -130,7 +124,7 @@ class Social_Status:
 
         # Convergence is reached
         # EPS = np.finfo(float).eps
-        EPS = 0.000001
+        EPS = 0.001
         E1 = np.absolute(np.linalg.norm(self.U, ord = 'fro') - np.linalg.norm(self._oldU, ord = 'fro'))
         E2 = np.absolute(np.linalg.norm(self.H, ord = 'fro') - np.linalg.norm(self._oldH, ord = 'fro'))
         if E1 < EPS and E2 < EPS:
@@ -207,7 +201,15 @@ class Social_Status:
     def start_main(self):
         max_itr = 400
         
-        self.calcR()
+        ranking = self.determine_user_ranking()
+        ranking = ranking.reshape(self.n,1)
+
+        # checks if rank(j) > rank(i)
+        test_1 = (ranking.T - ranking) * -1
+        test_1 = test_1 > 0
+
+        #calculates all the values
+        final = (1/(1+(np.log(ranking-ranking.T +1))))
 
         # self.U = np.random.random((self.n,self.d))
         # self.H = np.random.random((self.d,self.d))
@@ -220,12 +222,16 @@ class Social_Status:
 
         i = 1
 
-    
+        self.G_itr = np.dot(np.dot(self.U,self.H),self.U.transpose())
+
         # print self.converge(i)
-        while not i > max_itr:
+        while not self.converge(i):
             print ("Iteration: ", i)
+
+            self.calcR(test_1, final)
            
             self.updateMatrices()
+            self.G_itr = np.dot(np.dot(self.U,self.H),self.U.transpose())
 
             i = i + 1
         
@@ -320,11 +326,13 @@ print "set p" +  str(len(P))
 G = data[1]
 print "set G" + str(len(G))
 G_original = data[3]
-obj = Social_Status(G,P,d,400,G_original)
+obj = Social_Status(G,P,d,50,G_original)
 print "MADE SS OBJECT"
 obj.start_main()
 
-    
+  #NOTE FOR RUN:
+  # ADDED LESS THAN TWO TRUSTOR FILTER TO GET USERS TO MATCH: 0.32
+  # WIHOUT <2 TRUSTOR FILTER:   
 
 
             

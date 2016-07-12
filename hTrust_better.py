@@ -10,7 +10,7 @@ print "LOADED MATRICES"
 K = data[2]
 
 P = data[0] 
-print "set p" +  str(len(P))
+print "set p" + str(len(P))
 G = data[1]
 print "set G" + str(len(G))
 G_original = data[3]
@@ -35,7 +35,7 @@ def calcS(P):
     # dividing numerator and denominator and handling setting all nan to zero
 
     with np.errstate(divide='ignore', invalid='ignore'):
-        Z = np.divide(numerator,denominator).astype(np.float32)
+        Z = np.divide(numerator,denominator)
         # Z[Z == np.inf] = 0
         Z = np.nan_to_num(Z)
 
@@ -158,4 +158,4 @@ def TP_accuracy(G_original, G, GC):
     return TP 
 
 
-print hTrust(G,S,_lambda, K, 1000, P, G_original)
+print hTrust(G,S,_lambda, K, 50, P, G_original)

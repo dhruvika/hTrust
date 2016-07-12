@@ -4,6 +4,7 @@ from data_handler_new import data_handler
 import operator
 from operator import itemgetter
 from collections import OrderedDict
+import pdb
 
 #deleted self loops
 
@@ -19,16 +20,17 @@ class Social_Status:
         self.alpha = 0.1
         self.lambda1 = 0.1
         self.lambda2 = 0.1
-        self.Z = np.zeros((self.n,self.n), dtype = np.float64)
+        self.Z = np.zeros((self.n,self.n), dtype = np.float32)
         self.P = P #user-rating matrix (ixk)
-        self.W = np.ones((self.n,self.n), dtype = np.float64) 
-        self.R = np.zeros((self.n,self.n), dtype = np.float64) 
-        self._oldU = np.zeros((self.n, self.d), dtype = np.float64)
+        self.W = np.ones((self.n,self.n), dtype = np.float32) 
+        self.R = np.zeros((self.n,self.n), dtype = np.float32) 
+        self._oldU = np.zeros((self.n, self.d), dtype = np.float32)
         self.U= np.zeros((self.n, self.d), dtype = np.float64)
-        self._oldH = np.zeros((self.d, self.d), dtype = np.float64)
-        self.H = np.zeros((self.d, self.d), dtype = np.float64)
-        self.G_final = np.zeros((self.n,self.n), dtype = np.float64)
-        self.Q = np.zeros((self.n,self.n), dtype = np.float64)
+        self._oldH = np.zeros((self.d, self.d), dtype = np.float32)
+        self.H = np.zeros((self.d, self.d), dtype = np.float32)
+        self.G_final = np.zeros((self.n,self.n), dtype = np.float32)
+        self.G_itr = np.zeros((self.n,self.n), dtype = np.float32)
+        self.Q = np.zeros((self.n,self.n), dtype = np.float32)
         self.TP = -1
 
        
@@ -40,8 +42,6 @@ class Social_Status:
         # J_norm = np.array([math.sqrt(x.sum()**2) for x in self.P]).reshape(self.n,1)
         J_norm = np.sum(np.abs(self.P)**2,axis=-1)**(1./2)
         J_norm = J_norm.reshape(self.n,1)
-        print "J_norm shapeyyyyy"
-        print J_norm.shape
         I_norm = J_norm.transpose()
 
         denominator = np.dot(J_norm,I_norm)
@@ -94,26 +94,17 @@ class Social_Status:
        
         return np.matrix(rank_final)
 
-    def calcR(self):
-        ranking = self.determine_user_ranking()
-        print ranking
-
-        # using np operations to contruct boolean matrix
-
-        # checks if rank(j) > rank(i)
-        test_1 = (ranking.T - ranking) * -1.
-        test_1 = test_1 > 0
+    def calcR(self, test_1,final):
         
         # checks if trust(i,j) > trust(j,i)
-        test_2 = self.G - self.G.T 
+        test_2 = self.G_itr - self.G_itr.T 
         test_2 = test_2 > 0 
         
         test = test_1 & test_2
-        final = (1/(1+np.log(ranking +1))) - (1/(1+np.log(ranking.T + 1)))
-
 
         final[np.where(test==False)] = 0
         final = np.sqrt(final)
+        self.R = final
         print "FOUND R!"
 
     def converge(self, iterNO):
@@ -195,7 +186,10 @@ class Social_Status:
 
 
         test_B = B != 0
-        self.U = self.U * np.sqrt(A / B)
+        # print self.U.shape
+        # print A.shape, B.shape
+       
+        self.U = self.U * np.asarray(np.sqrt(A / B))
         indices_1 = zip(*np.where(test_B==False))
         # print "ORIGINAL LIST"
         # print np.where(test_B==False)
@@ -206,7 +200,7 @@ class Social_Status:
 
 
         test_D = D != 0
-        self.H = self.H * np.sqrt(C / D)
+        self.H = self.H * np.asarray(np.sqrt(C / D))
         indices_2 = zip(*np.where(test_D==False))
         for x,y in indices_2:
             self.H[x,y] = self._oldH[x,y]
@@ -217,10 +211,9 @@ class Social_Status:
 
 
     def start_main(self):
-        max_itr = 1000
+        max_itr = 50
         self.calcZ()
         self.calcW()
-        self.calcR()
 
         P = np.zeros(self.G.shape)
         L = np.zeros(self.G.shape)
@@ -233,21 +226,24 @@ class Social_Status:
             self.Q[i,i] = total
 
         L = self.Q - self.Z
-        # homo_contribution = 2 * np.trace(np.dot(np.dot(self.U.transpose(),L),self.U))
-        # print "Calculated homphily contribution"
 
-        # # #calculating status contribution
-        # part_2 = np.dot(np.dot(self.U,self.H.transpose()),self.U.transpose())
-        # part_3 = np.dot(np.dot(self.U,self.H),self.U.transpose())
-        # status_contribution = np.linalg.norm(self.R * (part_2 - part_3),ord = 'fro')
-        # status_contribution = status_contribution ** 2
-        # print "Calculated status contribution"
+        ranking = self.determine_user_ranking()
 
-        #initializing U,H LIKE--------------------------
+        # checks if rank(j) > rank(i)
+        test_1 = (ranking.T - ranking) * -1.
+        test_1 = test_1 > 0
+
+        #calculating all R values
+        # final = (1/(1+np.log(ranking +1))) - (1/(1+np.log(ranking.T + 1)))
+        final = (1/(1+np.log(ranking-ranking.T+1)))
+        print "FINAL"
+        print final
+
+        #SEE WHY TURNS TO NAN-----------------
 
         self.U = np.random.random((self.n,self.d))
         self.H = np.random.random((self.d,self.d))
-
+        self.G_itr = np.dot(np.dot(self.U,self.H),self.U.transpose())
         # self.U = np.ones((self.n,self.d)) * 0.1
         # self.H = np.ones((self.d,self.d)) * 0.1
 
@@ -257,19 +253,13 @@ class Social_Status:
         # print self.converge(i)
         while i < max_itr:
             print ("Iteration: ", i)
-            # self.calcR()
-        #print self.U, self._oldU
-        #term1 = np.linalg.norm(self.W * (self.G - np.dot(np.dot(self.U,self.H),self.U.transpose())),ord='fro')
-        #term1 = term1**2
-        #skipped the regulating terms as in MATRI/ frobenius norms?
-        #term2 = self.lambda1 * homo_contribution
-        #term3 = self.lambda2 * status_contribution
+            self.calcR(test_1,final)
+            # print "R"
+            # print self.R
 
-        #P = term1 + term2 + term3 #what was included in P?
-
-        # self.updateMatrices()
-            #print "AFTER UPDATE"
+    
             self.updateMatrices()
+            self.G_itr = np.dot(np.dot(self.U,self.H),self.U.transpose())
             #print self.U, self._oldU
             i = i + 1
         
@@ -289,11 +279,11 @@ class Social_Status:
         print "Found predicted trust! Has TP accuracy: " + str(self.TP_accuracy())
         #print G_final
 
-        print "FINAL PREDICTED"
-        print self.G_final
+        # print "FINAL PREDICTED"
+        # print self.G_final
         
-        print "START OFF AS"
-        print self.G
+        # print "START OFF AS"
+        # print self.G
 
         return self.G_final
 
@@ -384,7 +374,7 @@ print "set p" +  str(len(P))
 G = data[1]
 print "set G" + str(len(G))
 G_original = data[3]
-obj = Social_Status(G,P,d,1000,G_original)
+obj = Social_Status(G,P,d,50,G_original)
 print "MADE SS OBJECT"
 obj.start_main()
 
