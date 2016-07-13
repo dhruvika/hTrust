@@ -8,7 +8,7 @@ from collections import OrderedDict
 class Social_Status:
     def __init__(self,G,P,d,max_itr, G_original):
 
-        self.G_original = np.array(G_original,dtype = np.float32)
+        self.G_original = np.array(G_original,dtype = np.float16)
         self.G = G
         self.n = len(self.G)
         self.max_itr = max_itr
@@ -17,14 +17,14 @@ class Social_Status:
         # self.lambda1 = 0.1
         self.lambda2 = 0.7
         self.P = P #user-rating matrix (ixk)
-        self.R = np.zeros((self.n,self.n),dtype = np.float32) 
-        self._oldU = np.zeros((self.n, self.d),dtype = np.float32)
-        self.U= np.zeros((self.n, self.d),dtype = np.float32)
-        self._oldH = np.zeros((self.d, self.d),dtype = np.float32)
-        self.H = np.zeros((self.d, self.d),dtype = np.float32)
-        self.G_final = np.zeros((self.n,self.n),dtype = np.float32)
+        self.R = np.zeros((self.n,self.n),dtype = np.float16) 
+        self._oldU = np.zeros((self.n, self.d),dtype = np.float16)
+        self.U= np.zeros((self.n, self.d),dtype = np.float16)
+        self._oldH = np.zeros((self.d, self.d),dtype = np.float16)
+        self.H = np.zeros((self.d, self.d),dtype = np.float16)
+        self.G_final = np.zeros((self.n,self.n),dtype = np.float16)
         self.G_itr = np.zeros((self.n,self.n))
-        self.Q = np.zeros((self.n,self.n),dtype = np.float32)
+        self.Q = np.zeros((self.n,self.n),dtype = np.float16)
         self.TP = 0
 
       
@@ -100,8 +100,7 @@ class Social_Status:
 
 
     def calcR(self, test_1, final):
-      
-        
+          
         # checks if trust(i,j) > trust(j,i)
         test_2 = self.G_itr - self.G_itr.T 
         test_2 = test_2 > 0 
@@ -238,6 +237,11 @@ class Social_Status:
         print "Found U and H successfully!"
         print "THEY ARE"
         print self.U, self.H
+
+        # np.save("self_U",self.U)
+        # np.save("self_H",self.H)
+        # np.save("self_G_original", self.G_original)
+        # np.save("self_G",self.G)
 
         self.calcTrust()
 

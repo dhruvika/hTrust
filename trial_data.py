@@ -81,7 +81,7 @@ class data_handler():
 
 		#SET TEST VALUE HERE (amount of dataset to test on)
 
-		test_value = self.n * 0.1
+		test_value = self.n * 1.
 		print "No of users considered"
 		print test_value
 

@@ -64,12 +64,14 @@ def hTrust(G, S, _lambda, K, maxIter, P, G_original):
 
     # Initialize U and V randomly
 
-    U = np.random.uniform(0.0,0.1,(n,K))
-    V = np.random.uniform(0.0,0.1,(K, K))
+    # U = np.random.uniform(0.0,0.1,(n,K))
+    # V = np.random.uniform(0.0,0.1,(K, K))
 
     # U = np.ones((n,K)) * 0.05
     # V = np.ones((K,K)) * 0.05
 
+    U = np.load("U.npy")
+    V = np.load("sigma.npy")
 
 
     # U = np.random.random((n, K))
